@@ -24,6 +24,7 @@ from __future__ import print_function
 import functools
 import json
 import os
+import datetime
 
 
 
@@ -38,13 +39,20 @@ from dopamine.discrete_domains import run_experiment as base_run_experiment
 from dopamine.discrete_domains import train as base_train  # pylint: disable=unused-import
 import tensorflow.compat.v1 as tf
 
-flags.DEFINE_string('agent_name', 'dqn', 'Name of the agent.')
-flags.DEFINE_string('replay_dir', None, 'Directory from which to load the '
-                    'replay data')
+flags.DEFINE_string('env_name', 'Pong', 'Name of the environment.')
+flags.DEFINE_integer('data_num', 1, 'Dataset number (1..5).')
+flags.DEFINE_string('agent_name', 'multi_head_dqn', 'Name of the agent.')
+flags.DEFINE_string('replay_dir', None, 'Directory from which to load the replay data (to be set automatically)')
 flags.DEFINE_string('init_checkpoint_dir', None, 'Directory from which to load '
                     'the initial checkpoint before training starts.')
 
 FLAGS = flags.FLAGS
+
+FLAGS.base_dir = os.path.join(
+  './results',
+  datetime.datetime.utcnow().strftime('run_%Y_%m_%d_%H_%M_%S')
+)
+FLAGS.gin_files = ['batch_rl/fixed_replay/configs/rem.gin']
 
 
 def create_agent(sess, environment, replay_data_dir, summary_writer=None):
@@ -79,6 +87,11 @@ def create_agent(sess, environment, replay_data_dir, summary_writer=None):
 
 
 def main(unused_argv):
+  # update flags
+  FLAGS.replay_dir = f'/data_large/readonly/atari/{FLAGS.env_name}/{FLAGS.data_num}'
+  FLAGS.gin_bindings.append(f'atari_lib.create_atari_environment.game_name = "{FLAGS.env_name}"')
+  # do not update flags after this!
+
   tf.logging.set_verbosity(tf.logging.INFO)
   base_run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
   replay_data_dir = os.path.join(FLAGS.replay_dir, 'replay_logs')
@@ -89,6 +102,4 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  flags.mark_flag_as_required('replay_dir')
-  flags.mark_flag_as_required('base_dir')
   app.run(main)
