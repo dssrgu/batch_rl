@@ -12,8 +12,8 @@ This installation procedure was tested in 4/4/2022.
 
 2. Run the following commands to create a new Conda environment and install Tensorflow:
 ```
-conda create -n [ENV]
-conda activate [ENV]
+conda create -n [CONDA_ENV]
+conda activate [CONDA_ENV]
 conda install -c conda-forge tensorflow==2.6.2 cudatoolkit==11.2
 ```
 
