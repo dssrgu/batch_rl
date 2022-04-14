@@ -86,8 +86,7 @@ def main(unused_argv):
   # update flags
   FLAGS.base_dir = os.path.join(
     './results',
-    # datetime.datetime.utcnow().strftime('run_%Y_%m_%d_%H_%M_%S')
-    f'{FLAGS.env_name}_{FLAGS.data_num}'
+    f'{FLAGS.env_name}_{FLAGS.data_num}_' +  datetime.datetime.utcnow().strftime('run_%Y_%m_%d_%H_%M_%S')
   )
   FLAGS.replay_dir = f'/data_large/readonly/atari/{FLAGS.env_name}/{FLAGS.data_num}'
   FLAGS.gin_bindings.append(f'atari_lib.create_atari_environment.game_name = "{FLAGS.env_name}"')
