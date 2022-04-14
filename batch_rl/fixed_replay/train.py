@@ -48,10 +48,6 @@ flags.DEFINE_string('init_checkpoint_dir', None, 'Directory from which to load '
 
 FLAGS = flags.FLAGS
 
-FLAGS.base_dir = os.path.join(
-  './results',
-  datetime.datetime.utcnow().strftime('run_%Y_%m_%d_%H_%M_%S')
-)
 FLAGS.gin_files = ['batch_rl/fixed_replay/configs/rem.gin']
 
 
@@ -88,6 +84,11 @@ def create_agent(sess, environment, replay_data_dir, summary_writer=None):
 
 def main(unused_argv):
   # update flags
+  FLAGS.base_dir = os.path.join(
+    './results',
+    # datetime.datetime.utcnow().strftime('run_%Y_%m_%d_%H_%M_%S')
+    f'{FLAGS.env_name}_{FLAGS.data_num}'
+  )
   FLAGS.replay_dir = f'/data_large/readonly/atari/{FLAGS.env_name}/{FLAGS.data_num}'
   FLAGS.gin_bindings.append(f'atari_lib.create_atari_environment.game_name = "{FLAGS.env_name}"')
   # do not update flags after this!
