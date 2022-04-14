@@ -1,4 +1,4 @@
-# offline_atari
+# Offline Atari
 
 Code to run REM with offline Atari data. This code is based on [REM](https://github.com/google-research/batch_rl).
 
@@ -29,6 +29,8 @@ python -m pip install git+https://github.com/google/dopamine.git
 
 ## Reproducing results
 
+### Run experiments
+
 To reproduce the results for an environment, run: 
 
 ```
@@ -40,3 +42,12 @@ This code was tested on 5 environments used in CQL: Asterix, Breakout, Qbert, Se
 Each environment contains 5 equally partitioned datasets, so you can set DATA_NUMBER between [1..5].
 
 Experiment results are saved in ```./results``` folder.
+
+
+### Check tensorboard
+
+To visualize your runs with tensorboard, run:
+
+```
+python tensorboard.py
+```
