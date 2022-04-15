@@ -10,6 +10,7 @@ def run_tensorboard():
             cmd=r"""bash -c 'tensorboard --host=$(hostname).mllab.snu.ac.kr --port=0 --logdir={}'""".format(TENSORBOARD_DIR),
             partition='dept,titan,rtx2080,rtx3090',
             job_name='tensorboard',
+            timeout='INFINITE',
     )
 
 if __name__=='__main__':
