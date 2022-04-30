@@ -31,20 +31,34 @@ python -m pip install git+https://github.com/google/dopamine.git
 
 ### Run experiments
 
-To reproduce the results for an environment, run: 
+To reproduce the results for CQL or REM, run: 
 
 ```
-python -um batch_rl.fixed_replay.train --env_name [ENV] --data_num [DATA_NUMBER]
+python -um batch_rl.fixed_replay.train --env [ENV] --data_num [DATA_NUMBER] --method [METHOD] --replay_capacity [REPLAY_CAPACITY] --min_q_weight [MIN_Q_WEIGHT]
 ```
 
-This code was tested on 5 environments used in CQL: Asterix, Breakout, Qbert, Seaquest, and Pong.
+Descriptions:
+```
+
+--env:  environment name (Asterix, Breakout, Qbert, Seaquest, or Pong)
+
+--data_num: dataset number (1 ~ 5)
+
+--method: method name (cql or rem)
+
+--replay_capacity: replay buffer capacity. arange this to train on a subset of the full data. 1000000 denotes the full data. Hence, 100000 ==> 10% data / 10000 ==> 1% data
+
+--min_q_weight: Optional parameter for CQL. set to 1.0 for 10% data and 4.0 for 1% data.
+```
+
+This code was tested on 5 environments used in CQL: Asterix, Breakout, Qbert, Seaquest, and Pong, on 10% data (--replay_capacity 100000).
 
 Each environment contains 5 equally partitioned datasets, so you can set DATA_NUMBER between [1..5].
 
 Experiment results are saved in ```./results``` folder.
 
 
-### Check tensorboard
+### Check with tensorboard
 
 To visualize your runs with tensorboard, run:
 

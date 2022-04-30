@@ -54,7 +54,9 @@ class QuantileAgent(rainbow_agent.RainbowAgent):
                optimizer=tf.train.AdamOptimizer(
                    learning_rate=0.00005, epsilon=0.0003125),
                summary_writer=None,
-               summary_writing_frequency=500):
+               summary_writing_frequency=500,
+               min_q_weight=1.0,
+               ):
     """Initializes the agent and constructs the Graph.
 
     Args:
@@ -93,6 +95,8 @@ class QuantileAgent(rainbow_agent.RainbowAgent):
         written. Lower values will result in slower training.
     """
     self.kappa = kappa
+    self.min_q_weight = min_q_weight
+    print ('min Q weight (QR-DQN): ', self.min_q_weight)
 
     super(QuantileAgent, self).__init__(
         sess=sess,
@@ -213,8 +217,24 @@ class QuantileAgent(rainbow_agent.RainbowAgent):
     else:
       update_priorities_op = tf.no_op()
 
+    ### Add the CQL  loss
+    replay_action_one_hot = tf.one_hot(
+        self._replay.actions, self.num_actions, 1., 0., name='action_one_hot')
+    replay_chosen_q = tf.reduce_sum(
+        self._replay_net_outputs.q_values * replay_action_one_hot,
+        reduction_indices=1,
+        name='replay_chosen_q')
+    dataset_expec = tf.reduce_mean(replay_chosen_q)
+    negative_sampling = tf.reduce_mean(tf.reduce_logsumexp(self._replay_net_outputs.q_values, 1))
+
+    min_q_loss = (negative_sampling - dataset_expec) 
+
     with tf.control_dependencies([update_priorities_op]):
       if self.summary_writer is not None:
         with tf.variable_scope('Losses'):
           tf.summary.scalar('QuantileLoss', tf.reduce_mean(loss))
-      return self.optimizer.minimize(tf.reduce_mean(loss)), loss
+          tf.summary.scalar('minQLoss', tf.reduce_mean(min_q_loss))
+          tf.summary.scalar('Q_predictions', tf.reduce_mean(replay_chosen_q))
+
+      min_q_loss = min_q_loss * self.min_q_weight
+      return self.optimizer.minimize(tf.reduce_mean(loss) + min_q_loss), loss

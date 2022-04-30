@@ -39,16 +39,19 @@ from dopamine.discrete_domains import run_experiment as base_run_experiment
 from dopamine.discrete_domains import train as base_train  # pylint: disable=unused-import
 import tensorflow.compat.v1 as tf
 
-flags.DEFINE_string('env_name', 'Pong', 'Name of the environment.')
+flags.DEFINE_string('env', 'Pong', 'Name of the environment.')
+flags.DEFINE_string('method', 'cql', 'Name of the method (e.g. cql, rem).')
 flags.DEFINE_integer('data_num', 1, 'Dataset number (1..5).')
-flags.DEFINE_string('agent_name', 'multi_head_dqn', 'Name of the agent.')
+flags.DEFINE_integer('replay_capacity', 1000000, 'replay buffer capacity. set to 1000000 for full data. 100000 for 10% data. 10000 for 1% data.')
+flags.DEFINE_float('min_q_weight', 1.0, 'min_q_weight for CQl. set to 1.0 for 10% data and 4.0 for 1% data.')
+flags.DEFINE_string('agent', 'multi_head_dqn', 'Name of the agent.')
 flags.DEFINE_string('replay_dir', None, 'Directory from which to load the replay data (to be set automatically)')
 flags.DEFINE_string('init_checkpoint_dir', None, 'Directory from which to load '
                     'the initial checkpoint before training starts.')
 
+
 FLAGS = flags.FLAGS
 
-FLAGS.gin_files = ['batch_rl/fixed_replay/configs/rem.gin']
 
 
 def create_agent(sess, environment, replay_data_dir, summary_writer=None):
@@ -64,16 +67,16 @@ def create_agent(sess, environment, replay_data_dir, summary_writer=None):
   Returns:
     A DQN agent with metrics.
   """
-  if FLAGS.agent_name == 'dqn':
+  if FLAGS.agent == 'dqn':
     agent = dqn_agent.FixedReplayDQNAgent
-  elif FLAGS.agent_name == 'c51':
+  elif FLAGS.agent == 'c51':
     agent = rainbow_agent.FixedReplayRainbowAgent
-  elif FLAGS.agent_name == 'quantile':
+  elif FLAGS.agent == 'quantile':
     agent = quantile_agent.FixedReplayQuantileAgent
-  elif FLAGS.agent_name == 'multi_head_dqn':
+  elif FLAGS.agent == 'multi_head_dqn':
     agent = multi_head_dqn_agent.FixedReplayMultiHeadDQNAgent
   else:
-    raise ValueError('{} is not a valid agent name'.format(FLAGS.agent_name))
+    raise ValueError('{} is not a valid agent name'.format(FLAGS.agent))
 
   return agent(sess, num_actions=environment.action_space.n,
                replay_data_dir=replay_data_dir, summary_writer=summary_writer,
@@ -84,12 +87,23 @@ def create_agent(sess, environment, replay_data_dir, summary_writer=None):
 
 def main(unused_argv):
   # update flags
+  FLAGS.method = FLAGS.method.lower()
+  if FLAGS.method == 'rem':
+    FLAGS.gin_files = ['batch_rl/fixed_replay/configs/rem.gin']
+    FLAGS.agent = 'multi_head_dqn'
+  elif FLAGS.method == 'cql':
+    FLAGS.gin_files = ['batch_rl/fixed_replay/configs/cql.gin']
+    FLAGS.gin_bindings.append(f'FixedReplayQuantileAgent.min_q_weight = {FLAGS.min_q_weight}')
+    FLAGS.agent = 'quantile'
+  else:
+    raise NotImplementedError
   FLAGS.base_dir = os.path.join(
     './results',
-    f'{FLAGS.env_name}_{FLAGS.data_num}_' +  datetime.datetime.utcnow().strftime('run_%Y_%m_%d_%H_%M_%S')
+    f'{FLAGS.env}_{FLAGS.data_num}_{FLAGS.method}_' +  datetime.datetime.utcnow().strftime('run_%Y_%m_%d_%H_%M_%S')
   )
-  FLAGS.replay_dir = f'/data_large/readonly/atari/{FLAGS.env_name}/{FLAGS.data_num}'
-  FLAGS.gin_bindings.append(f'atari_lib.create_atari_environment.game_name = "{FLAGS.env_name}"')
+  FLAGS.replay_dir = f'/data_large/readonly/atari/{FLAGS.env}/{FLAGS.data_num}'
+  FLAGS.gin_bindings.append(f'atari_lib.create_atari_environment.game_name = "{FLAGS.env}"')
+  FLAGS.gin_bindings.append(f'WrappedFixedReplayBuffer.replay_capacity = {FLAGS.replay_capacity}')
   # do not update flags after this!
 
   tf.logging.set_verbosity(tf.logging.INFO)
