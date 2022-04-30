@@ -1,6 +1,6 @@
 # Offline Atari
 
-Code to run REM with offline Atari data. This code is based on [REM](https://github.com/google-research/batch_rl).
+Code to run REM and CQL with offline Atari data. This code is based on [REM](https://github.com/google-research/batch_rl) and [CQL](https://github.com/aviralkumar2907/CQL).
 
 ## Installation
 
