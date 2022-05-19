@@ -181,7 +181,7 @@ class FixedReplayBufferCustom(object):
 
     N = len(d['reward'])
     replay_buffer.add_count = np.array(N) # How many transitions were added?
-    replay_buffer.invalid_rage = np.array([N, N-1, 2, 1, 0]) # list of idx where transition stack [idx, idx-1, idx-2, idx-3] is invalid
+    replay_buffer.invalid_range = np.array([N, N-1, 2, 1, 0]) # list of idx where transition stack [idx, idx-1, idx-2, idx-3] is invalid
 
   def _load_buffer(self):
     """Loads a OutOfGraphReplayBuffer replay buffer."""
