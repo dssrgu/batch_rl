@@ -160,9 +160,9 @@ class FixedReplayBufferCustom(object):
     self.add_count = np.array(0)
     self._load_buffer()
 
-  def custom_load(replay_buffer, data_dir):
+  def custom_load(self, replay_buffer):
     """ custom loading function for the replay buffer.
-    Assumes the dataset is loaded from data_dir.
+    Assumes the dataset is loaded from self._data_dir.
     The dataset will be a dictionary of numpy arrays with following (key, val) pairs:
     observation: [N x H x W] 
     action: [N] 
@@ -172,7 +172,7 @@ class FixedReplayBufferCustom(object):
     This function replaces dopamine.replay_memory.circular_replay_buffer.OutOfGraphReplayBuffer.load() function.
     """
 
-    d = np.load(data_dir) # this line should change according to the save function you used
+    d = np.load(self._data_dir) # this line should change according to the save function you used
 
     replay_buffer._store['observation'] = d['observation']
     replay_buffer._store['action'] = d['action']
@@ -181,7 +181,7 @@ class FixedReplayBufferCustom(object):
 
     N = len(d['reward'])
     replay_buffer.add_count = np.array(N) # How many transitions were added?
-    replay_buffer.invalid_range = np.array([N, N-1, 2, 1, 0]) # list of idx where transition stack [idx, idx-1, idx-2, idx-3] is invalid
+    replay_buffer.invalid_range = np.array([N-1, N-2, 2, 1, 0]) # list of idx where transition stack [idx, idx-1, idx-2, idx-3] is invalid
 
   def _load_buffer(self):
     """Loads a OutOfGraphReplayBuffer replay buffer."""
@@ -193,7 +193,7 @@ class FixedReplayBufferCustom(object):
           *self._args, **self._kwargs)
 
       # replay_buffer.load(self._data_dir, suffix) ## this is replaced!
-      self.custom_load(replay_buffer, data_dir=self._data_dir)
+      self.custom_load(replay_buffer)
 
       # pylint:disable=protected-access
       replay_capacity = replay_buffer._replay_capacity
