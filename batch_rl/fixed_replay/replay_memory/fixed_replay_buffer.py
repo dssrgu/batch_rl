@@ -141,6 +141,100 @@ class FixedReplayBuffer(object):
     pass
 
 
+class FixedReplayBufferCustom(object):
+  """Customized FixedReplayBuffer to load from a single numpy dictionary file."""
+
+  def __init__(self, data_dir, replay_suffix, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
+    """Initialize the FixedReplayBuffer class.
+
+    Args:
+      data_dir: str, log Directory from which to load the replay buffer.
+      replay_suffix: int, If not None, then only load the replay buffer
+        corresponding to the specific suffix in data directory.
+      *args: Arbitrary extra arguments.
+      **kwargs: Arbitrary keyword arguments.
+    """
+    self._args = args
+    self._kwargs = kwargs
+    self._data_dir = data_dir
+    self.add_count = np.array(0)
+    self._load_buffer()
+
+  def custom_load(replay_buffer, data_dir):
+    """ custom loading function for the replay buffer.
+    Assumes the dataset is loaded from data_dir.
+    The dataset will be a dictionary of numpy arrays with following (key, val) pairs:
+    observation: [N x H x W] 
+    action: [N] 
+    reward: [N]
+    terminal: [N]
+
+    This function replaces dopamine.replay_memory.circular_replay_buffer.OutOfGraphReplayBuffer.load() function.
+    """
+
+    d = np.load(data_dir) # this line should change according to the save function you used
+
+    replay_buffer._store['observation'] = d['observation']
+    replay_buffer._store['action'] = d['action']
+    replay_buffer._store['reward'] = d['reward']
+    replay_buffer._store['terminal'] = d['terminal']
+
+    N = len(d['reward'])
+    replay_buffer.add_count = np.array(N) # How many transitions were added?
+    replay_buffer.invalid_rage = np.array([N, N-1, 2, 1, 0]) # list of idx where transition stack [idx, idx-1, idx-2, idx-3] is invalid
+
+  def _load_buffer(self):
+    """Loads a OutOfGraphReplayBuffer replay buffer."""
+    try:
+      # pytype: disable=attribute-error
+      tf.logging.info(
+          f'Starting to load from {self._data_dir}')
+      replay_buffer = circular_replay_buffer.OutOfGraphReplayBuffer(
+          *self._args, **self._kwargs)
+
+      # replay_buffer.load(self._data_dir, suffix) ## this is replaced!
+      self.custom_load(replay_buffer, data_dir=self._data_dir)
+
+      # pylint:disable=protected-access
+      replay_capacity = replay_buffer._replay_capacity
+      tf.logging.info(f'Capacity: {replay_buffer._replay_capacity}')
+      for name, array in replay_buffer._store.items():
+        # This frees unused RAM if replay_capacity is smaller than 1M
+        replay_buffer._store[name] = array[:replay_capacity + 4].copy()
+        tf.logging.info(f'{name}: {array.shape}')
+      tf.logging.info('Loaded replay buffer from {}'.format(self._data_dir))
+      
+      self._replay_buffer = replay_buffer
+      self.add_count = replay_buffer.add_count
+      self._num_replay_buffers = 1
+      self._loaded_buffers = True
+    
+    except tf.errors.NotFoundError:
+      return None
+
+  def get_transition_elements(self):
+    return self._replay_buffer.get_transition_elements()
+
+  def sample_transition_batch(self, batch_size=None, indices=None):
+    return self._replay_buffer.sample_transition_batch(
+        batch_size=batch_size, indices=indices)
+
+  def load(self, *args, **kwargs):  # pylint: disable=unused-argument
+    pass
+
+  def reload_buffer(self, num_buffers=None):
+    """ Do not reload buffer since we use only one buffer """
+    # self._loaded_buffers = False
+    # self._load_replay_buffers(num_buffers)
+    pass
+
+  def save(self, *args, **kwargs):  # pylint: disable=unused-argument
+    pass
+
+  def add(self, *args, **kwargs):  # pylint: disable=unused-argument
+    pass
+
+
 @gin.configurable(denylist=['observation_shape', 'stack_size',
                              'update_horizon', 'gamma'])
 class WrappedFixedReplayBuffer(circular_replay_buffer.WrappedReplayBuffer):
